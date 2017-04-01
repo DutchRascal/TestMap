@@ -19,6 +19,7 @@ class ViewMapVC: UIViewController
     override func viewDidLoad()
     {
         super.viewDidLoad()
+        print(location)
         let coordinateRegion = MKCoordinateRegionMakeWithDistance(location.coordinate, 750, 750)
         mapView.setRegion(coordinateRegion, animated: true)
         mapView.showsUserLocation = true

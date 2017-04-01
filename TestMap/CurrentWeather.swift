@@ -55,7 +55,7 @@ class CurrentWeather {
         let timeFormatter = DateFormatter()
         timeFormatter.timeStyle = .short
         timeFormatter.dateFormat = "k:mm"
-        let timeZone = NSTimeZone(name: "CET") as? TimeZone
+        let timeZone = NSTimeZone(name: "CET") as TimeZone?
         timeFormatter.timeZone = timeZone
         let currentTime = timeFormatter.string(from: Date())
         self._time = currentTime
@@ -92,7 +92,7 @@ class CurrentWeather {
     
     var direction: String {
         if _direction == nil {
-            _direction = ""
+            _direction = "?"
         }
         return _direction
     }
@@ -107,10 +107,13 @@ class CurrentWeather {
     func downloadCurrentWeather(completed: @escaping DownloadComplete)
     {
         Alamofire.request(CURRENT_WEATHER_URL).responseJSON { response in
-//            debugPrint(response)
             let result = response.result
             if let currentWeatherDictionary = result.value as? Dictionary<String, Any>
             {
+                if let _ = currentWeatherDictionary["cod"] as? Double
+                {
+                    self._cityName = "Service unavailable ..."
+                }
                 if let name = currentWeatherDictionary["name"] as? String {
                     self._cityName = name.capitalized
                 }
@@ -150,10 +153,10 @@ class CurrentWeather {
                     if let deg = windInformation["deg"] as? Double
                     {
                         self._direction = self.windDirection(windDirection: deg)
-                    }
+                    } 
                 }
                 
-
+                
             }
             completed()
         }
@@ -167,70 +170,47 @@ class CurrentWeather {
     func windDirection(windDirection: Double) -> String
     {
         var winDir = ""
-        if windDirection >= 348.75 && windDirection < 11.25
+        
+        switch windDirection
         {
+        case 0..<11.25 :
             winDir = "N"
-        }
-        if windDirection >= 11.25 && windDirection < 33.75
-        {
+        case 11.25..<33.75 :
             winDir = "NNE"
-        }
-        if windDirection >= 33.75 && windDirection < 56.25
-        {
+        case 33.75..<56.25 :
             winDir = "NE"
-        }
-        if windDirection >= 56.25 && windDirection < 78.75
-        {
+        case 56.25..<78.75:
             winDir = "ENE"
-        }
-        if windDirection >= 78.75 && windDirection < 101.25
-        {
+        case 78.75..<101.25:
             winDir = "E"
-        }
-        if windDirection >= 101.25 && windDirection < 123.75
-        {
+        case 101.25..<123.75:
             winDir = "ESE"
-        }
-        if windDirection >= 123.75 && windDirection < 146.25
-        {
+        case 123.75..<146.25:
             winDir = "SE"
-        }
-        if windDirection >= 146.25 && windDirection < 168.75
-        {
+        case 146.25..<168.75:
             winDir = "SSE"
-        }
-        if windDirection >= 168.75 && windDirection < 191.25
-        {
+        case 168.75..<191.25:
             winDir = "S"
-        }
-        if windDirection >= 191.255 && windDirection < 213.75
-        {
+        case 191.255..<213.75:
             winDir = "SSW"
-        }
-        if windDirection >= 213.75 && windDirection < 236.25
-        {
+        case 213.75..<236.25:
             winDir = "SW"
-        }
-        if windDirection >= 236.255 && windDirection < 258.75
-        {
+        case 236.255..<258.75:
             winDir = "WSW"
-        }
-        if windDirection >= 258.75 && windDirection < 281.25
-        {
+        case 258.75..<281.25:
             winDir = "W"
-        }
-        if windDirection >= 281.25 && windDirection < 303.75
-        {
+        case 281.25..<303.75:
             winDir = "WNW"
-        }
-        if windDirection >= 303.75 && windDirection < 326.25
-        {
+        case 303.75..<326.25:
             winDir = "NW"
-        }
-        if windDirection >= 326.25 && windDirection < 348.75
-        {
+        case 326.25..<348.75:
             winDir = "NNW"
+        case 348.75...360 :
+            winDir = "N"
+        default:
+            winDir = "?"
         }
+        
         return winDir
     }
 }

@@ -8,8 +8,9 @@
 
 import UIKit
 import MapKit
+import Alamofire
 
-class MainVC: UIViewController, CLLocationManagerDelegate, MKMapViewDelegate {
+class MainVC: UIViewController, CLLocationManagerDelegate, MKMapViewDelegate, UITableViewDelegate, UITableViewDataSource {
     
     @IBOutlet weak var mapView: MKMapView!
     @IBOutlet weak var currentCityName: UILabel!
@@ -22,17 +23,23 @@ class MainVC: UIViewController, CLLocationManagerDelegate, MKMapViewDelegate {
     @IBOutlet weak var weatherDesription: UILabel!
     @IBOutlet weak var windDescription: UILabel!
     @IBOutlet weak var mapButton: UIButton!
+    @IBOutlet weak var tableView: UITableView!
     
     let locationManager = CLLocationManager()
-    var currenLocation: CLLocation?
+    var currentLocation: CLLocation?
     var haveFix = false
     var timeoutTimer: Timer?
     var updateTimer: Timer?
     var currentWeather: CurrentWeather!
     var allowedUpdate = true
+    var forecast: Forecast!
+    var forecasts = [Forecast]()
+    var backFromSegue = false
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        tableView.delegate = self
+        tableView.dataSource = self
         mapView.mapType = .standard
         currentCityName.text = "Looking for a fix ..."
         locationManager.delegate = self
@@ -61,12 +68,20 @@ class MainVC: UIViewController, CLLocationManagerDelegate, MKMapViewDelegate {
         
     }
     
+    override func viewWillAppear(_ animated: Bool) {
+        
+        if backFromSegue
+        {
+//            updateAllowedDownload()
+        }
+    }
+    
     func updateAllowedDownload ()
     {
         allowedUpdate = true
         updateTimer = Timer.scheduledTimer(timeInterval: 3600, target: self, selector: #selector (updateAllowedDownload), userInfo: nil, repeats: false)
         startStopLocationMangager(state: "start")
-        getLocation(location: currenLocation!)
+        getLocation(location: currentLocation!)
         if haveFix
         {
             handleDownloadWeather()
@@ -80,13 +95,13 @@ class MainVC: UIViewController, CLLocationManagerDelegate, MKMapViewDelegate {
         if state == "start" {
             locationManager.startUpdatingLocation()
             timeoutTimer = Timer.scheduledTimer(timeInterval: 30, target: self, selector: #selector(timeOutDetected), userInfo: nil, repeats: false)
-            print("*** \(currentWeather?.time) Start updating ***")
+            print("*** \(String(describing: currentWeather?.time)) Start updating ***")
         } else if state == "stop" {
             if let timer = timeoutTimer {
                 timer.invalidate()
             }
             locationManager.stopUpdatingLocation()
-            print("*** \(currentWeather?.time) Stop updating ***")
+            print("*** \(String(describing: currentWeather?.time)) Stop updating ***")
         }
     }
     
@@ -98,10 +113,10 @@ class MainVC: UIViewController, CLLocationManagerDelegate, MKMapViewDelegate {
     func checkLocationAuthStatus() {
         if CLLocationManager.authorizationStatus() == .authorizedWhenInUse {
             
-            if let currenLocation = locationManager.location
+            if let currentLocation = locationManager.location
             {
-                Location.sharedInstance.longitude = currenLocation.coordinate.longitude
-                Location.sharedInstance.latitude = currenLocation.coordinate.latitude
+                Location.sharedInstance.longitude = currentLocation.coordinate.longitude
+                Location.sharedInstance.latitude = currentLocation.coordinate.latitude
             }
             mapView.showsUserLocation = true
         } else {
@@ -131,10 +146,6 @@ class MainVC: UIViewController, CLLocationManagerDelegate, MKMapViewDelegate {
     {
         haveFix = false
         mapButton.isEnabled = false
-        //        print(location)
-        //        centerMapOnLocation(location: location)
-        
-        
         if location.timestamp.timeIntervalSinceNow < -5 {
             return
         }
@@ -144,32 +155,47 @@ class MainVC: UIViewController, CLLocationManagerDelegate, MKMapViewDelegate {
         
         if location.horizontalAccuracy <= locationManager.desiredAccuracy {
             centerMapOnLocation(location: location)
-            updateCoordinates(location: location)
+            Utils.updateCoordinates(location: location)
             haveFix = true
             mapButton.isEnabled = true
-            //            allowedUpdate = false
             print("*** We have a fix! ***")
         }
         centerMapOnLocation(location: location)
-        
-    }
-    
-    func updateCoordinates(location: CLLocation)
-    {
-        currenLocation = location
-        Location.sharedInstance.latitude = currenLocation?.coordinate.latitude
-        Location.sharedInstance.longitude = currenLocation?.coordinate.longitude
-        CURRENT_WEATHER_URL = "http://api.openweathermap.org/data/2.5/weather?lat=\(Location.sharedInstance.latitude!)&lon=\(Location.sharedInstance.longitude!)&appid=ae4bfc24515b92974e0bd30b3ae046ec&units=metrics"
-        FORECAST_URL  = "http://api.openweathermap.org/data/2.5/forecast/daily?lat=\(Location.sharedInstance.latitude!)&lon=\(Location.sharedInstance.longitude!)&cnt=10&mode=json&appid=ae4bfc24515b92974e0bd30b3ae046ec&units=metrics"
+        currentLocation = location
         
     }
     
     func handleDownloadWeather() {
+        
+        var documentsDirectory: String?
+        
         if allowedUpdate
         {
+            var paths = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)
             currentWeather = CurrentWeather()
             currentWeather.downloadCurrentWeather {
-                self.downloadImage()
+                let icon = "\(self.currentWeather.icon).png"
+                if !Utils.checkFileExists(file: icon)
+                {
+                    Utils.downloadImage(icon: icon)
+                }
+                var counter = 0
+                while !Utils.checkFileExists(file: icon) && counter < 100
+                {
+                    counter += 1
+                    print("Downloading ...\(counter)")
+                }
+                if paths.count > 0
+                {
+                    documentsDirectory = paths[0]
+                    let savePathIcon = documentsDirectory! + "/\(icon)"
+                    self.weatherSymbol.image = UIImage(named: savePathIcon)
+                }
+                
+                self.downloadForecast {
+                    print("Download Forecast")
+                }
+                
                 self.updateDisplay()
             }
         }
@@ -186,34 +212,6 @@ class MainVC: UIViewController, CLLocationManagerDelegate, MKMapViewDelegate {
     func willEnterBackground() {
         startStopLocationMangager(state: "stop")
         print("Enter Background")
-    }
-    
-    
-    func downloadImage() {
-        
-        let icon = self.currentWeather.icon
-        let myUrl = URL(string: "http://openweathermap.org/img/w/\(icon).png")
-        let task = URLSession.shared.dataTask(with: myUrl!)
-        {
-            (data, response, error) in
-            let responseString = "\(response)"
-            if responseString.range(of: "status code: 404") == nil
-            {
-                var documentsDirectory: String?
-                var paths = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)
-                if paths.count > 0
-                {
-                    documentsDirectory = paths[0]
-                    let savePath = documentsDirectory! + "/\(icon).png"
-                    FileManager.default.createFile(atPath: savePath, contents: data, attributes: nil)
-                    DispatchQueue.main.async
-                        {
-                            self.weatherSymbol.image = UIImage(named: savePath)
-                    }
-                }
-            }
-        }
-        task.resume()
     }
     
     func updateDisplay()
@@ -239,14 +237,66 @@ class MainVC: UIViewController, CLLocationManagerDelegate, MKMapViewDelegate {
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?)
     {
-        if segue.identifier == "ViewMapVC"
+        if segue.identifier == "ViewMap"
         {
-            if let ViewMap = segue.destination as? ViewMapVC
+            let viewController = segue.destination as! ViewMapVC
+            viewController.location = currentLocation
+        }
+        else
+        {
+            if segue.identifier == "ShowForecast"
             {
-                ViewMap.location = currenLocation
+                let navigation = segue.destination as! UINavigationController
+                let viewController = navigation.topViewController as! WeatherTableVC
+                viewController.location = currentLocation
+                backFromSegue = true
             }
         }
-        startStopLocationMangager(state: "stop")
     }
+    
+    //MARK: TableView
+    
+    func numberOfSections(in tableView: UITableView) -> Int {
+        return 1
+    }
+    
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        return forecasts.count
+    }
+    
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        return ForecastCell()
+    }
+    
+    func downloadForecast(completion: @escaping () -> () ) {
+        Utils.updateCoordinates(location: currentLocation!)
+        Alamofire.request(
+            FORECAST_URL
+            )
+            .validate()
+            .responseJSON { response in
+                guard response.result.isSuccess else {
+                    print("Error while fetching data: \(String(describing: response.result.error))")
+                    completion( () )
+                    return
+                }
+                let result = response.result
+                if let forecastDictionary = result.value as? Dictionary<String, Any>
+                {
+                    if let list = forecastDictionary["list"] as? [Dictionary<String,Any>]
+                    {
+                        for object in list
+                        {
+                            let forecast = Forecast(forecastDictionary: object)
+                            self.forecasts.append(forecast)
+                        }
+                        self.forecasts.remove(at: 0)
+                        self.tableView.reloadData()
+                    }
+                }
+                completion( () )
+        }
+    }
+    
 }
 
