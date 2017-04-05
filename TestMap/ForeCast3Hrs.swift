@@ -65,7 +65,7 @@ class ForeCast3Hrs
             let dateFormatter = DateFormatter()
             dateFormatter.dateStyle = .full
             dateFormatter.timeStyle = .full
-            let localTimeZone = TimeZone.current.abbreviation() ?? "UTC"
+            let localTimeZone = TimeZone.current.abbreviation() ?? "CEST"
             dateFormatter.timeZone = NSTimeZone(abbreviation: localTimeZone) as TimeZone!
             dateFormatter.dateFormat = "yyyy-MM-dd HH:mm"
             let dateString = dateFormatter.string(from: dateConverted)

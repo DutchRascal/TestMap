@@ -33,7 +33,6 @@ class WeatherTableVC: UITableViewController  {
                 {
                     Constants.allowForecastToBeLoaded = false
                     self.myTimer = Timer.scheduledTimer(timeInterval: self.calculateTimeout(), target: self, selector: #selector (self.enableDownload), userInfo: nil, repeats: false)
-//                    self.myTimer = Timer.scheduledTimer(timeInterval: 120, target: self, selector: #selector (self.enableDownload), userInfo: nil, repeats: false)
                     
             }
         }
@@ -78,7 +77,6 @@ class WeatherTableVC: UITableViewController  {
         Utils.updateCoordinates(location: location)
         Alamofire.request(
             FORECAST3HR_URL
-            //            "http://api.openweathermap.org/data/2.5/forecast?q=Hengelo&mode=json&appid=ae4bfc24515b92974e0bd30b3ae046ec&units=metrics&cnt=12"
             )
             .validate()
             .responseJSON { response in
@@ -114,17 +112,17 @@ class WeatherTableVC: UITableViewController  {
     {
         print("enableDownload \(Constants.allowForecastToBeLoaded) \(Date())")
         Constants.allowForecastToBeLoaded = true
-                self.myTimer = Timer.scheduledTimer(timeInterval: self.calculateTimeout(), target: self, selector: #selector (self.enableDownload), userInfo: nil, repeats: false)
-//        self.myTimer = Timer.scheduledTimer(timeInterval: 120, target: self, selector: #selector (self.enableDownload), userInfo: nil, repeats: false)
+        self.myTimer = Timer.scheduledTimer(timeInterval: self.calculateTimeout(), target: self, selector: #selector (self.enableDownload), userInfo: nil, repeats: false)
         
         if Constants.allowForecastToBeLoaded
         {
             downloadForecast
                 {
-                    Constants.allowForecastToBeLoaded = false                    
+                    Constants.allowForecastToBeLoaded = false
             }
+            tableView.reloadData()
         }
-
+        
     }
     
     // MARK: - Table view data source
@@ -144,6 +142,7 @@ class WeatherTableVC: UITableViewController  {
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         if let cell = tableView.dequeueReusableCell(withIdentifier: "weatherCell", for: indexPath) as? WeatherCell
         {
+            cell.selectionStyle = UITableViewCellSelectionStyle.none
             let forecast = forecasts[indexPath.row]
             cell.configureCellInformation(forecast: forecast)
             return cell
@@ -158,51 +157,57 @@ class WeatherTableVC: UITableViewController  {
     
     func calculateTimeout() -> Double
     {
-        let hour = Calendar.current.component(.hour, from: Date())
-        var timeoutNextReloadAllowed = 0.0
-        let year = Calendar.current.component(.year, from: Date())
-        let month = Calendar.current.component(.month, from: Date())
-        let day = Calendar.current.component(.day, from: Date())
+        //        let hour = Calendar.current.component(.hour, from: Date())
+        var timeoutNextReloadAllowed = 1800.0
+        //        let year = Calendar.current.component(.year, from: Date())
+        //        let month = Calendar.current.component(.month, from: Date())
+        //        let day = Calendar.current.component(.day, from: Date())
         
         let dateFormatter = DateFormatter()
-        let dateStringNow = "\(year)-\(month)-\(day)"
+        //        let dateStringNow = "\(year)-\(month)-\(day)"
         dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
         let beginTime = dateFormatter.date(from: dateFormatter.string(from: NSDate() as Date))?.timeIntervalSince1970
-        
-        switch hour{
-        case 1..<4:
-            print("Between 1 and 3")
-            let endTime = (dateFormatter.date(from: "\(dateStringNow) 4:00:00")?.timeIntervalSince1970)
+        if forecasts.count > 0
+        {
+            let timeString = "\(forecasts[0].date):00"
+            let endTime = (dateFormatter.date(from: timeString)?.timeIntervalSince1970)
             timeoutNextReloadAllowed = endTime! - beginTime!
-        case 4..<7:
-            print("Between 4 and 7")
-            let endTime = (dateFormatter.date(from: "\(dateStringNow) 7:00:00")?.timeIntervalSince1970)
-            timeoutNextReloadAllowed = endTime! - beginTime!
-        case 7..<10:
-            print("Between 7 and 10")
-            let endTime = (dateFormatter.date(from: "\(dateStringNow) 10:00:00")?.timeIntervalSince1970)
-            timeoutNextReloadAllowed = endTime! - beginTime!
-        case 10..<13:
-            print("Between 10 and 13")
-            let endTime = (dateFormatter.date(from: "\(dateStringNow) 13:00:00")?.timeIntervalSince1970)
-            timeoutNextReloadAllowed = endTime! - beginTime!
-        case 13..<16:
-            print("Between 13 and 16")
-            let endTime = (dateFormatter.date(from: "\(dateStringNow) 16:00:00")?.timeIntervalSince1970)
-            timeoutNextReloadAllowed = endTime! - beginTime!
-        case 16..<19:
-            print("Between 16 and 19")
-            let endTime = (dateFormatter.date(from: "\(dateStringNow) 19:00:00")?.timeIntervalSince1970)
-            timeoutNextReloadAllowed = endTime! - beginTime!
-        case 19..<22:
-            print("Between 19 and 22")
-            let endTime = (dateFormatter.date(from: "\(dateStringNow) 22:00:00")?.timeIntervalSince1970)
-            timeoutNextReloadAllowed = endTime! - beginTime!
-        default:
-            print(">22")
-            let endTime = (dateFormatter.date(from: "\(dateStringNow) 23:59:59")?.timeIntervalSince1970)
-            timeoutNextReloadAllowed = endTime! - beginTime! + 3601
         }
+        
+        //        switch hour{
+        //        case 1..<4:
+        //            print("Between 1 and 3")
+        //            let endTime = (dateFormatter.date(from: "\(dateStringNow) 4:00:00")?.timeIntervalSince1970)
+        //            timeoutNextReloadAllowed = endTime! - beginTime!
+        //        case 4..<7:
+        //            print("Between 4 and 7")
+        //            let endTime = (dateFormatter.date(from: "\(dateStringNow) 7:00:00")?.timeIntervalSince1970)
+        //            timeoutNextReloadAllowed = endTime! - beginTime!
+        //        case 7..<10:
+        //            print("Between 7 and 10")
+        //            let endTime = (dateFormatter.date(from: "\(dateStringNow) 10:00:00")?.timeIntervalSince1970)
+        //            timeoutNextReloadAllowed = endTime! - beginTime!
+        //        case 10..<13:
+        //            print("Between 10 and 13")
+        //            let endTime = (dateFormatter.date(from: "\(dateStringNow) 13:00:00")?.timeIntervalSince1970)
+        //            timeoutNextReloadAllowed = endTime! - beginTime!
+        //        case 13..<16:
+        //            print("Between 13 and 16")
+        //            let endTime = (dateFormatter.date(from: "\(dateStringNow) 16:00:00")?.timeIntervalSince1970)
+        //            timeoutNextReloadAllowed = endTime! - beginTime!
+        //        case 16..<19:
+        //            print("Between 16 and 19")
+        //            let endTime = (dateFormatter.date(from: "\(dateStringNow) 19:00:00")?.timeIntervalSince1970)
+        //            timeoutNextReloadAllowed = endTime! - beginTime!
+        //        case 19..<22:
+        //            print("Between 19 and 22")
+        //            let endTime = (dateFormatter.date(from: "\(dateStringNow) 22:00:00")?.timeIntervalSince1970)
+        //            timeoutNextReloadAllowed = endTime! - beginTime!
+        //        default:
+        //            print(">22")
+        //            let endTime = (dateFormatter.date(from: "\(dateStringNow) 23:59:59")?.timeIntervalSince1970)
+        //            timeoutNextReloadAllowed = endTime! - beginTime! + 3601
+        //        }
         print(timeoutNextReloadAllowed)
         return timeoutNextReloadAllowed + 15
     }

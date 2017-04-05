@@ -26,32 +26,6 @@ class Utils: UIViewController
         }
     }
     
-    class func downloadImage(icon: String)
-    {
-        
-        let myUrl = URL(string: "http://openweathermap.org/img/w/\(icon)")
-        let task = URLSession.shared.dataTask(with: myUrl!)
-        {
-            (data, response, error) in
-            let responseString = "\(String(describing: response))"
-            if responseString.range(of: "status code: 404") == nil
-            {
-                var documentsDirectory: String?
-                var paths = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)
-                if paths.count > 0
-                {
-                    documentsDirectory = paths[0]
-                    let savePath = documentsDirectory! + "/\(icon)"
-                    FileManager.default.createFile(atPath: savePath, contents: data, attributes: nil)
-                    DispatchQueue.main.async
-                        {
-                    }
-                }
-            }
-        }
-        task.resume()
-    }
-    
     class func updateCoordinates(location: CLLocation)
     {
         let currentLocation = location

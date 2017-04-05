@@ -40,6 +40,7 @@ class MainVC: UIViewController, CLLocationManagerDelegate, MKMapViewDelegate, UI
         super.viewDidLoad()
         tableView.delegate = self
         tableView.dataSource = self
+        self.tableView.separatorStyle = UITableViewCellSeparatorStyle.none
         mapView.mapType = .standard
         currentCityName.text = "Looking for a fix ..."
         locationManager.delegate = self
@@ -72,7 +73,7 @@ class MainVC: UIViewController, CLLocationManagerDelegate, MKMapViewDelegate, UI
         
         if backFromSegue
         {
-//            updateAllowedDownload()
+            //            updateAllowedDownload()
         }
     }
     
@@ -168,34 +169,33 @@ class MainVC: UIViewController, CLLocationManagerDelegate, MKMapViewDelegate, UI
     func handleDownloadWeather() {
         
         var documentsDirectory: String?
+        var file: String?
         
         if allowedUpdate
         {
             var paths = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)
             currentWeather = CurrentWeather()
             currentWeather.downloadCurrentWeather {
+                
                 let icon = "\(self.currentWeather.icon).png"
-                if !Utils.checkFileExists(file: icon)
-                {
-                    Utils.downloadImage(icon: icon)
-                }
-                var counter = 0
-                while !Utils.checkFileExists(file: icon) && counter < 100
-                {
-                    counter += 1
-                    print("Downloading ...\(counter)")
-                }
+                let url = URL(string: "http://openweathermap.org/img/w/\(icon)")
+                
                 if paths.count > 0
                 {
                     documentsDirectory = paths[0]
-                    let savePathIcon = documentsDirectory! + "/\(icon)"
-                    self.weatherSymbol.image = UIImage(named: savePathIcon)
+                    file = documentsDirectory! + "/\(icon)"
+                    print(file!)
+                    if !Utils.checkFileExists(file: icon)
+                    {
+                        let data = NSData(contentsOf: url!)
+                        FileManager.default.createFile(atPath: file!, contents: data! as Data, attributes: nil)
+                    }
                 }
-                
+                self.weatherSymbol.image = UIImage(named: file!)
+                self.forecasts.removeAll()
                 self.downloadForecast {
                     print("Download Forecast")
                 }
-                
                 self.updateDisplay()
             }
         }
@@ -265,7 +265,17 @@ class MainVC: UIViewController, CLLocationManagerDelegate, MKMapViewDelegate, UI
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        return ForecastCell()
+        if let cell = tableView.dequeueReusableCell(withIdentifier: "forecastCell", for: indexPath) as? ForecastCell
+        {
+            cell.selectionStyle = UITableViewCellSelectionStyle.none
+            let forecast = forecasts[indexPath.row]
+            cell.configureCell(forecast: forecast)
+            return cell
+        }
+        else
+        {
+            return ForecastCell()
+        }
     }
     
     func downloadForecast(completion: @escaping () -> () ) {

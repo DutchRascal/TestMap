@@ -17,7 +17,7 @@ class Forecast {
     var _icon: String!
     
     var date: String {
-        if _date == "" {
+        if _date == nil {
             _date = ""
         }
         return _date
@@ -59,24 +59,44 @@ class Forecast {
             {
                 let temperatureCelsius = Utils.kelvinToCelsius(temperature: min)
                 self._minTemp = "\(temperatureCelsius)"
-                print("Min: \(_minTemp)")
             }
             if let max = temperture["max"] as? Double
             {
                 let temperatureCelsius = Utils.kelvinToCelsius(temperature: max)
                 self._maxTemp = "\(temperatureCelsius)"
-                print("Max: \(_maxTemp)")
             }
-            
         }
         if let weather = forecastDictionary["weather"] as? [Dictionary<String,Any>]
         {
             if let main = weather[0]["main"] as? String{
                 self._weatherDescription = main
-                print("Description: \(_weatherDescription)")
+            }
+            if let icon = weather[0]["icon"] as? String
+            {
+                self._icon = icon
             }
         }
+        if let date = forecastDictionary["dt"] as? Double
+        {
+            let unixConvertedDate = Date(timeIntervalSince1970: date)
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateStyle = .full
+            dateFormatter.dateFormat = "EEEE"
+            dateFormatter.timeStyle = .none
+            self._date = unixConvertedDate.dayOfTheWeek()
+
+
+        }
     }
-    
-    
+}
+
+extension Date
+{
+    func dayOfTheWeek() -> String
+    {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "EEEE"
+        return dateFormatter.string(from: self)
+        
+    }
 }
