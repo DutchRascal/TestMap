@@ -24,6 +24,8 @@ class MainVC: UIViewController, CLLocationManagerDelegate, MKMapViewDelegate, UI
     @IBOutlet weak var windDescription: UILabel!
     @IBOutlet weak var mapButton: UIButton!
     @IBOutlet weak var tableView: UITableView!
+    @IBOutlet weak var forecastButton: UIButton!
+    @IBOutlet weak var cityDetailButton: UIButton!
     
     let locationManager = CLLocationManager()
     var currentLocation: CLLocation?
@@ -62,6 +64,8 @@ class MainVC: UIViewController, CLLocationManagerDelegate, MKMapViewDelegate, UI
             updateTimer = Timer.scheduledTimer(timeInterval: 3600, target: self, selector: #selector (updateAllowedDownload), userInfo: nil, repeats: false)
         }
         mapButton.isEnabled = false
+        cityDetailButton.isEnabled = false
+        forecastButton.isEnabled = false
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -96,13 +100,13 @@ class MainVC: UIViewController, CLLocationManagerDelegate, MKMapViewDelegate, UI
         if state == "start" {
             locationManager.startUpdatingLocation()
             timeoutTimer = Timer.scheduledTimer(timeInterval: 30, target: self, selector: #selector(timeOutDetected), userInfo: nil, repeats: false)
-            print("*** \(String(describing: currentWeather?.time)) Start updating ***")
+//            print("*** \(String(describing: currentWeather?.time)) Start updating ***")
         } else if state == "stop" {
             if let timer = timeoutTimer {
                 timer.invalidate()
             }
             locationManager.stopUpdatingLocation()
-            print("*** \(String(describing: currentWeather?.time)) Stop updating ***")
+//            print("*** \(String(describing: currentWeather?.time)) Stop updating ***")
         }
     }
     
@@ -180,23 +184,29 @@ class MainVC: UIViewController, CLLocationManagerDelegate, MKMapViewDelegate, UI
                 let icon = "\(self.currentWeather.icon).png"
                 let url = URL(string: "http://openweathermap.org/img/w/\(icon)")
                 
-                if paths.count > 0
+                if self.currentWeather.icon != ""
                 {
-                    documentsDirectory = paths[0]
-                    file = documentsDirectory! + "/\(icon)"
-                    print(file!)
-                    if !Utils.checkFileExists(file: icon)
+                    if paths.count > 0
                     {
-                        let data = NSData(contentsOf: url!)
-                        FileManager.default.createFile(atPath: file!, contents: data! as Data, attributes: nil)
+                        self.cityDetailButton.isEnabled = true
+                        self.forecastButton.isEnabled = true
+                        documentsDirectory = paths[0]
+                        file = documentsDirectory! + "/\(icon)"
+//                        print(file!)
+                        if !Utils.checkFileExists(file: icon)
+                        {
+                            let data = NSData(contentsOf: url!)
+                            FileManager.default.createFile(atPath: file!, contents: data! as Data, attributes: nil)
+                        }
+                    }
+                    self.weatherSymbol.image = UIImage(named: file!)
+                    self.forecasts.removeAll()
+                    self.downloadForecast {
+//                        print("Download Forecast")
                     }
                 }
-                self.weatherSymbol.image = UIImage(named: file!)
-                self.forecasts.removeAll()
-                self.downloadForecast {
-                    print("Download Forecast")
-                }
                 self.updateDisplay()
+                
             }
         }
     }
@@ -205,13 +215,13 @@ class MainVC: UIViewController, CLLocationManagerDelegate, MKMapViewDelegate, UI
         if allowedUpdate
         {
             startStopLocationMangager(state: "start")
-            print("Enter ForeGround")
+//            print("Enter ForeGround")
         }
     }
     
     func willEnterBackground() {
         startStopLocationMangager(state: "stop")
-        print("Enter Background")
+//        print("Enter Background")
     }
     
     func updateDisplay()
@@ -242,15 +252,21 @@ class MainVC: UIViewController, CLLocationManagerDelegate, MKMapViewDelegate, UI
             let viewController = segue.destination as! ViewMapVC
             viewController.location = currentLocation
         }
-        else
+        else if segue.identifier == "ShowForecast"
+            
         {
-            if segue.identifier == "ShowForecast"
-            {
-                let navigation = segue.destination as! UINavigationController
-                let viewController = navigation.topViewController as! WeatherTableVC
-                viewController.location = currentLocation
-                backFromSegue = true
-            }
+            let navigation = segue.destination as! UINavigationController
+            let viewController = navigation.topViewController as! WeatherTableVC
+            viewController.location = currentLocation
+            backFromSegue = true
+        }
+        else if segue.identifier == "CityDetail"
+        {
+            let viewController = segue.destination as! cityVC
+            viewController.cityName = currentWeather.cityName
+            viewController.sunrise = currentWeather.sunrise
+            viewController.sunset = currentWeather.sunset
+            viewController.pressure = currentWeather.pressure
         }
     }
     
@@ -287,6 +303,7 @@ class MainVC: UIViewController, CLLocationManagerDelegate, MKMapViewDelegate, UI
             .responseJSON { response in
                 guard response.result.isSuccess else {
                     print("Error while fetching data: \(String(describing: response.result.error))")
+                    self.currentCityName.text = "Service unavailable ...."
                     completion( () )
                     return
                 }

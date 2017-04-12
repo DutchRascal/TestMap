@@ -15,6 +15,7 @@ class WeatherCell: UITableViewCell {
     @IBOutlet weak var dateTimeLabel: UILabel!
     @IBOutlet weak var weatherDescription: UILabel!
     @IBOutlet weak var temperature: UILabel!
+    @IBOutlet weak var pressureLabel: UILabel!
     
     
     
@@ -27,6 +28,7 @@ class WeatherCell: UITableViewCell {
         dateTimeLabel.text = forecast.date
         temperature.text = forecast.temperature
         weatherDescription.text = forecast.weather
+        pressureLabel.text = "\(forecast.pressure)"
         let url = URL(string: "http://openweathermap.org/img/w/\(forecast.icon).png")
         let iconToFetch = "\(forecast.icon).png"
         if paths.count > 0

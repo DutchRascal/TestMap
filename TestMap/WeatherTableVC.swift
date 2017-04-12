@@ -1,3 +1,4 @@
+
 //
 //  weatherTableVC.swift
 //  TestMap
@@ -26,7 +27,7 @@ class WeatherTableVC: UITableViewController  {
     {
         super.viewDidLoad()
         self.clearsSelectionOnViewWillAppear = false
-        print("Download allowed : \(Constants.allowForecastToBeLoaded)")
+//        print("Download allowed : \(Constants.allowForecastToBeLoaded)")
         if Constants.allowForecastToBeLoaded
         {
             downloadForecast
@@ -45,7 +46,7 @@ class WeatherTableVC: UITableViewController  {
                 weatherDictionaryFile = try weatherDictionary.getJSONData()
                 handleData(weatherDictionary: weatherDictionaryFile)
                 tableView.reloadData()
-                print("reload data \(forecasts.count)")
+//                print("reload data \(forecasts.count)")
             }
             catch
             {
@@ -75,6 +76,8 @@ class WeatherTableVC: UITableViewController  {
     
     func downloadForecast(completion: @escaping () -> () ) {
         Utils.updateCoordinates(location: location)
+        print("Sleeping...")
+        sleep(1)
         Alamofire.request(
             FORECAST3HR_URL
             )
@@ -85,7 +88,7 @@ class WeatherTableVC: UITableViewController  {
                     completion( () )
                     return
                 }
-                print("Alamofire")
+//                print("Alamofire")
                 
                 if let weatherDictionary = response.result.value as? Dictionary<String, Any>
                 {
@@ -105,24 +108,38 @@ class WeatherTableVC: UITableViewController  {
                 self.forecasts.append(forecast)
             }
         }
+        tableView.reloadData()
         
     }
     
     func enableDownload()
     {
-        print("enableDownload \(Constants.allowForecastToBeLoaded) \(Date())")
+//        print("enableDownload \(Constants.allowForecastToBeLoaded) \(Date())")
         Constants.allowForecastToBeLoaded = true
-        self.myTimer = Timer.scheduledTimer(timeInterval: self.calculateTimeout(), target: self, selector: #selector (self.enableDownload), userInfo: nil, repeats: false)
         
-        if Constants.allowForecastToBeLoaded
-        {
-            downloadForecast
-                {
-                    Constants.allowForecastToBeLoaded = false
-            }
-            tableView.reloadData()
+        forecasts.removeAll()
+//        print("Cleared forecasts \(forecasts.count)")
+        downloadForecast
+            {
+                Constants.allowForecastToBeLoaded = false
+                self.myTimer = Timer.scheduledTimer(timeInterval: self.calculateTimeout(), target: self, selector: #selector (self.enableDownload), userInfo: nil, repeats: false)
+                self.tableView.reloadData()
+//                let weatherDictionary = FileSaveHelper(fileName: "3HrForecast", fileExtension: .json, subDirectory: "3HrForecast", directory: .documentDirectory)
+//                do
+//                {
+//                    
+//                    self.weatherDictionaryFile = try weatherDictionary.getJSONData()
+//                    self.handleData(weatherDictionary: self.weatherDictionaryFile)
+//                }
+//                catch
+//                {
+//                    print(error)
+//                }
+                
         }
         
+        handleData(weatherDictionary: weatherDictionaryFile)
+        print("reload data \(self.forecasts.count)")
     }
     
     // MARK: - Table view data source
@@ -134,7 +151,7 @@ class WeatherTableVC: UITableViewController  {
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         // #warning Incomplete implementation, return the number of rows
-        print(forecasts.count)
+//        print(forecasts.count)
         return forecasts.count
     }
     
@@ -166,12 +183,22 @@ class WeatherTableVC: UITableViewController  {
         let dateFormatter = DateFormatter()
         //        let dateStringNow = "\(year)-\(month)-\(day)"
         dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
-        let beginTime = dateFormatter.date(from: dateFormatter.string(from: NSDate() as Date))?.timeIntervalSince1970
+        let localTimeZone = TimeZone.current.abbreviation() ?? "CEST"
+        dateFormatter.timeZone = NSTimeZone(abbreviation: localTimeZone) as TimeZone!
+        let startTime = dateFormatter.string(from: Date())
+        //        let beginTime = dateFormatter.date(from: dateFormatter.string(from: NSDate() as Date))?.timeIntervalSince1970
+        let beginTime = (dateFormatter.date(from: startTime)?.timeIntervalSince1970)
         if forecasts.count > 0
         {
             let timeString = "\(forecasts[0].date):00"
             let endTime = (dateFormatter.date(from: timeString)?.timeIntervalSince1970)
+            print("\(String(describing: startTime)) - \(timeString)")
+            print("\(beginTime!) - \(endTime!)")
             timeoutNextReloadAllowed = endTime! - beginTime!
+            while timeoutNextReloadAllowed < 0
+            {
+                timeoutNextReloadAllowed += 10800
+            }
         }
         
         //        switch hour{
@@ -209,6 +236,7 @@ class WeatherTableVC: UITableViewController  {
         //            timeoutNextReloadAllowed = endTime! - beginTime! + 3601
         //        }
         print(timeoutNextReloadAllowed)
-        return timeoutNextReloadAllowed + 15
+        return timeoutNextReloadAllowed + 120
+        //                return 60
     }
 }

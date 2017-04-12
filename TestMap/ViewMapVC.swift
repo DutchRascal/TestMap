@@ -42,7 +42,7 @@ class ViewMapVC: UIViewController
                 }
             }
         }
-        print(location)
+//        print(location)
         let coordinateRegion = MKCoordinateRegionMakeWithDistance(location.coordinate, 750, 750)
         mapView.setRegion(coordinateRegion, animated: true)
         mapView.showsUserLocation = true

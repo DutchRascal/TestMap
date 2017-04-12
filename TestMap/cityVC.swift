@@ -10,8 +10,23 @@ import UIKit
 
 class cityVC: UIViewController {
 
+    @IBOutlet weak var cityLabel: UILabel!
+    @IBOutlet weak var sunriseLabel: UILabel!
+    @IBOutlet weak var sunsetLabel: UILabel!
+    @IBOutlet weak var pressureLabel: UILabel!
+    
+    var cityName: String!
+    var sunrise: String!
+    var sunset: String!
+    var pressure: Int!
+    
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        cityLabel.text = cityName
+        sunriseLabel.text = sunrise
+        sunsetLabel.text = sunset
+        pressureLabel.text = "\(pressure!)"
 
         // Do any additional setup after loading the view.
     }

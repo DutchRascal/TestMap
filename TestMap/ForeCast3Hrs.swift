@@ -14,6 +14,7 @@ class ForeCast3Hrs
     var _temperature: String!
     var _weather: String!
     var _icon: String!
+    var _pressure: Int!
     
     var date: String
     {
@@ -51,6 +52,15 @@ class ForeCast3Hrs
         return _icon
     }
     
+    var pressure: Int
+    {
+        if _pressure == nil
+        {
+            _pressure = 0
+        }
+        return _pressure
+    }
+    
     init(forecastDictionary: Dictionary<String, Any>)
     {
         if let main = forecastDictionary["main"] as? Dictionary<String, Any>
@@ -58,6 +68,10 @@ class ForeCast3Hrs
             if let temp = main["temp"] as? Double
             {
                 self._temperature = "\(Double(round(10 * (temp - 273.15))) / 10)"
+            }
+            if let pressure = main["pressure"] as? Int
+            {
+                self._pressure = pressure
             }
         }
         if let date = forecastDictionary["dt"] as? Double {

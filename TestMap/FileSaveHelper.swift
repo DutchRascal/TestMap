@@ -77,7 +77,7 @@ class FileSaveHelper {
         self.directoryPath = NSSearchPathForDirectoriesInDomains(directory, .userDomainMask, true)[0]
         self.filePath = directoryPath + self.subDirectory
         self.fullyQualifiedPath = "\(filePath)/\(self.fileName)"
-        print(self.directoryPath)
+//        print(self.directoryPath)
         createDirectory()
     }
     
