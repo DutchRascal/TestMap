@@ -43,11 +43,22 @@ class ViewMapVC: UIViewController
             }
         }
 //        print(location)
+        centerMap()
+    }
+    
+    func centerMap()
+    {
         let coordinateRegion = MKCoordinateRegionMakeWithDistance(location.coordinate, 750, 750)
         mapView.setRegion(coordinateRegion, animated: true)
         mapView.showsUserLocation = true
+
     }
 
+    @IBAction func centerMapPressed(_ sender: Any)
+    {
+        centerMap()
+    }
+    
     @IBAction func backButtonPressed(_ sender: Any)
     {
         dismiss(animated: true, completion: nil)

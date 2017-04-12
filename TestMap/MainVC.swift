@@ -66,6 +66,7 @@ class MainVC: UIViewController, CLLocationManagerDelegate, MKMapViewDelegate, UI
         mapButton.isEnabled = false
         cityDetailButton.isEnabled = false
         forecastButton.isEnabled = false
+        
     }
     
     override func viewDidAppear(_ animated: Bool) {
